@@ -1,16 +1,21 @@
 var world = new World(0.016, 9.8, 4);
-var pt = new Obj(10, 10);
-pt.gravity = false;
+var cir = new Circle(10, 10,30);
+cir.gravity = false;
+world.addObj(cir);
 
 function setup() {
     let cnv = createCanvas(675, 400);
     cnv.style('display', 'block');
     cnv.style('margin', 'auto');
     cnv.style('margin-top', '50px');
-    world.addObj(pt);
+    
     let box = new Box(200, 200, 100, 50);
     box.gravity = false;
     world.addObj(box);
+
+    let cir1 = new Circle(500,200,50);
+    cir1.gravity = false;
+    world.addObj(cir1);
 }
 
 function draw() {
@@ -23,10 +28,10 @@ function draw() {
         switch (ele.type) {
             case objTypes.point:
                 //point(ele.x, ele.y);
-                ellipse(ele.x, ele.y, 10);
+                ellipse(ele.x, ele.y, 1);
                 break;
             case objTypes.circle:
-                ellipse(ele.x, ele.y, ele.R);
+                ellipse(ele.x, ele.y, ele.R * 2);
                 break;
             case objTypes.box:
                 strokeWeight(3);
@@ -43,4 +48,4 @@ onmousedown = function () {
     world.addObj(new Obj(mouseX, mouseY, random(-100, 100), random(-100, 100)));
 }
 
-onmousemove = () => {pt.x = mouseX; pt.y = mouseY};
+onmousemove = () => {cir.x = mouseX; cir.y = mouseY};

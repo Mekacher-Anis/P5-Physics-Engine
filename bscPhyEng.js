@@ -67,6 +67,7 @@ class Stk {
     constructor(obj1, obj2, length) {
         this.obj1 = obj1;
         this.obj2 = obj2;
+        this.mid = new Obj((obj1.x + obj2.x) / 2, (obj1.y + obj2.y) / 2);
         this.length = length;
         this.type = objTypes.stick;
     }
@@ -85,6 +86,10 @@ class Stk {
 
 function distance(x1, y1, x2, y2) {
     return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
+}
+
+function distanceSq(x1, y1, x2, y2) {
+    return Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2);
 }
 
 function detectCol(obj, world) {
@@ -166,8 +171,15 @@ function cirCirCol(cir1, cir2) {
         console.log('Circle Circle Collision !!');
 }
 
-function cirBoxCol(cir, box) {
-    return false;
+function cirBoxCol(circle, box) {
+    let rotation = Math.acos(cosAngle(new Vec(1,0),vec(box.points[0],box.points[1])));
+    let CircleX = Math.cos(rotation) * (circle.x - box.x) - Math.sin(rotation) * (circle.y - box.y) + box.x;
+    let CircleY = Math.sin(rotation) * (circle.x - box.x) + Math.cos(rotation) * (circle.y - box.y) + box.y;
+    let DeltaX = CircleX - Math.max(box.x-box.W/2, Math.min(CircleX, box.x + box.W/2));
+    let DeltaY = CircleY - Math.max(box.y-box.H/2, Math.min(CircleY, box.y + box.H/2));
+    if((DeltaX * DeltaX + DeltaY * DeltaY) < (cir.R * cir.R))
+        console.log('Circle Box collision !!');
+        
 }
 
 function boxBoxCol(box1, box2) {
@@ -261,5 +273,7 @@ class World {
             ele.vY += ele.aY * this.T * this.ENL;
             ele.y += ele.vY * this.T * this.ENL;
         });
+        //update sticks linking corners
+        box.sticks.forEach(ele => ele.updatePos());
     }
 }
