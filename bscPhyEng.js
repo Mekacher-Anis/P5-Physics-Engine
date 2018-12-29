@@ -14,8 +14,15 @@ class Obj {
         this.vY = vY;
         this.aX = aX;
         this.aY = aY;
+        this.oldX = 0;
+        this.oldY = 0;
+        this.oldVX = 0;
+        this.oldVY = 0;
+        this.oldAX = 0;
+        this.oldAY = 0;
         this.type = objTypes.point;
         this.gravity = true; //afected by graviy
+        this.m = 10;
     }
 
     setPos(x, y) {
@@ -31,6 +38,27 @@ class Obj {
     setA(x, y) {
         this.aX = x;
         this.aY = y;
+    }
+
+    resetV() {
+        this.oldVX = this.vX;
+        this.oldVY = this.vY;
+        this.vX = 0;
+        this.vY = 0;
+    }
+
+    resetPos() {
+        this.oldX = this.x;
+        this.oldY = this.y;
+        this.x = 0;
+        this.y = 0;
+    }
+
+    resetA() {
+        this.oldAX = this.aX;
+        this.oldAY = this.aY;
+        this.aX = 0;
+        this.aY = 0;
     }
 }
 
@@ -144,13 +172,17 @@ function detectCol(obj, world) {
 }
 
 function ptPtCol(pt1, pt2) {
-    if (pt1.x == pt2.x && pt1.y == pt2.y)
+    if (pt1.x == pt2.x && pt1.y == pt2.y) {
         console.log('Point Point Collision !!');
+        handleCol(pt1, pt2);
+    }
 }
 
 function ptCirCol(pt, cir) {
-    if (distance(pt.x, pt.y, cir.x, cir.y) <= cir.R)
+    if (distance(pt.x, pt.y, cir.x, cir.y) <= cir.R) {
         console.log('Point Circle Collision !!');
+        handleCol(pt, cir);
+    }
 }
 
 function ptBoxCol(pt, box) {
@@ -159,34 +191,54 @@ function ptBoxCol(pt, box) {
     let proj1 = cos1 * OM;
     let cos2 = cosAngle(vec(box.points[0], box.points[3]), vec(box.points[0], pt));
     let proj2 = cos2 * OM;
-    //console.log('OM ',OM,', cos1 ',cos1,', cos2 ',cos2);
 
     if ((0 <= proj1 && proj1 <= box.W) &&
-        (0 <= proj2 && proj2 <= box.H))
+        (0 <= proj2 && proj2 <= box.H)) {
         console.log('Point Box Collision !!');
+        handleCol(pt, box);
+    }
 }
 
 function cirCirCol(cir1, cir2) {
-    if (distance(cir1.x, cir1.y, cir2.x, cir2.y) <= cir1.R + cir2.R)
+    if (distance(cir1.x, cir1.y, cir2.x, cir2.y) <= cir1.R + cir2.R) {
         console.log('Circle Circle Collision !!');
+        handleCol(cir1, cir2);
+    }
 }
 
 function cirBoxCol(circle, box) {
-    let rotation = Math.acos(cosAngle(new Vec(1,0),vec(box.points[0],box.points[1])));
+    let rotation = Math.acos(cosAngle(new Vec(1, 0), vec(box.points[0], box.points[1])));
     let CircleX = Math.cos(rotation) * (circle.x - box.x) - Math.sin(rotation) * (circle.y - box.y) + box.x;
     let CircleY = Math.sin(rotation) * (circle.x - box.x) + Math.cos(rotation) * (circle.y - box.y) + box.y;
-    let DeltaX = CircleX - Math.max(box.x-box.W/2, Math.min(CircleX, box.x + box.W/2));
-    let DeltaY = CircleY - Math.max(box.y-box.H/2, Math.min(CircleY, box.y + box.H/2));
-    if((DeltaX * DeltaX + DeltaY * DeltaY) < (cir.R * cir.R))
+    let DeltaX = CircleX - Math.max(box.x - box.W / 2, Math.min(CircleX, box.x + box.W / 2));
+    let DeltaY = CircleY - Math.max(box.y - box.H / 2, Math.min(CircleY, box.y + box.H / 2));
+    if ((DeltaX * DeltaX + DeltaY * DeltaY) < (cir.R * cir.R)) {
         console.log('Circle Box collision !!');
-        
+        handleCol(circle, box);
+    }
 }
 
 function boxBoxCol(box1, box2) {
     box1.points.forEach(ele => {
         if (ptBoxCol(ele, box2))
             console.log('Box Box Collision !!');
+        handleCol(box1, box2);
     });
+}
+
+function handleCol(obj1, obj2) {
+    //console.log('Called for ',obj1.type,'/',obj2.type,' collision !!');
+
+    //https://en.wikipedia.org/wiki/Elastic_collision
+    let speedNorPro = dotPro(new Vec(obj1.vX - obj2.vX, obj1.vY - obj2.vY), vec(obj2, obj1))
+    let centerDist = distanceSq(obj1.x, obj1.y, obj2.x, obj2.y);
+    let changeX = (speedNorPro * (obj1.x - obj2.x)) / (centerDist * (obj1.m + obj2.m));
+    let changeY = (speedNorPro * (obj1.y - obj2.y)) / (centerDist * (obj1.m + obj2.m));
+
+    obj1.vX -= 2 * obj2.m * changeX;
+    obj1.vY -= 2 * obj2.m * changeY;
+    obj2.vX += 2 * obj1.m * changeX;
+    obj2.vY += 2 * obj1.m * changeY;
 }
 
 class World {
@@ -247,7 +299,8 @@ class World {
         if (ele.gravity) {
             //calculate gravity (it's not added 
             //to A as it is applyed to all elements)
-            ele.vY += this.G * this.T * this.ENL;
+            //ele.vY += this.G * this.T * this.ENL;
+            ele.aY += this.G;
         }
         //detect collision
         detectCol(ele, this);
@@ -256,13 +309,15 @@ class World {
         ele.x += ele.vX * this.T * this.ENL;
         ele.vY += ele.aY * this.T * this.ENL;
         ele.y += ele.vY * this.T * this.ENL;
+        ele.resetA();
     }
 
     updateBox(box) {
         if (box.gravity) {
             //calculate gravity (it's not added 
             //to A as it is applyed to all elements)
-            box.points.forEach(ele => ele.vY += this.G * this.T * this.ENL);
+            //box.points.forEach(ele => ele.vY += this.G * this.T * this.ENL);
+            box.points.forEach(ele => ele.aY += this.G);
         }
         //detect collision
         detectCol(box, this);
@@ -272,6 +327,7 @@ class World {
             ele.x += ele.vX * this.T * this.ENL;
             ele.vY += ele.aY * this.T * this.ENL;
             ele.y += ele.vY * this.T * this.ENL;
+            ele.resetA();
         });
         //update sticks linking corners
         box.sticks.forEach(ele => ele.updatePos());

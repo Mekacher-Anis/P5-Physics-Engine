@@ -14,6 +14,10 @@ function cosAngle(v1,v2){
     return (v1.x*v2.x + v1.y*v2.y)/(v1.length * v2.length); 
 }
 
+function dotPro(v1,v2){
+    return v1.x * v2.x + v1.y * v2.y;
+}
+
 function btw(val,min,max) {
     return (min <= val && val <= max) ? true : false;
 }

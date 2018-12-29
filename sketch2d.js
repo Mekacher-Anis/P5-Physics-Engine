@@ -9,13 +9,20 @@ function setup() {
     cnv.style('margin', 'auto');
     cnv.style('margin-top', '50px');
     
-    let box = new Box(200, 200, 100, 50);
-    box.gravity = false;
-    world.addObj(box);
+    // let box = new Box(200, 200, 100, 50);
+    // box.gravity = false;
+    // world.addObj(box);
 
-    let cir1 = new Circle(500,200,50);
-    cir1.gravity = false;
+    let cir1 = new Circle(100,100,50);
+    cir1.setA(150,100);
+    //cir1.gravity = false;
     world.addObj(cir1);
+    
+    let cir2 = new Circle(300,100,50);
+    cir2.setA(-150,100)
+    //cir2.gravity = false;
+    world.addObj(cir2);
+    
 }
 
 function draw() {
@@ -48,4 +55,9 @@ onmousedown = function () {
     world.addObj(new Obj(mouseX, mouseY, random(-100, 100), random(-100, 100)));
 }
 
-onmousemove = () => {cir.x = mouseX; cir.y = mouseY};
+onmousemove = () => {
+    cir.vX = mouseX - cir.x;
+    cir.x = mouseX;
+    cir.vY = mouseY - cir.y;
+    cir.y = mouseY
+};
