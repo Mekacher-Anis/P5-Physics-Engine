@@ -23,6 +23,8 @@ class Obj {
         this.type = objTypes.point;
         this.gravity = true; //afected by graviy
         this.m = 10;
+        this.visible = true;
+        this.CR = 1; //coefficent of restitution 0(perfectly inelastic) - 1(Elastic)
     }
 
     setPos(x, y) {
@@ -199,6 +201,8 @@ function ptBoxCol(pt, box) {
     }
 }
 
+
+
 function cirCirCol(cir1, cir2) {
     if (distance(cir1.x, cir1.y, cir2.x, cir2.y) <= cir1.R + cir2.R) {
         console.log('Circle Circle Collision !!');
@@ -207,7 +211,9 @@ function cirCirCol(cir1, cir2) {
 }
 
 function cirBoxCol(circle, box) {
-    let rotation = Math.acos(cosAngle(new Vec(1, 0), vec(box.points[0], box.points[1])));
+    //https://yal.cc/rectangle-circle-intersection-test/
+    let rotation = Math.acos(cosAngle(new Vec(1, 
+        0), vec(box.points[0], box.points[1])));
     let CircleX = Math.cos(rotation) * (circle.x - box.x) - Math.sin(rotation) * (circle.y - box.y) + box.x;
     let CircleY = Math.sin(rotation) * (circle.x - box.x) + Math.cos(rotation) * (circle.y - box.y) + box.y;
     let DeltaX = CircleX - Math.max(box.x - box.W / 2, Math.min(CircleX, box.x + box.W / 2));
@@ -229,16 +235,46 @@ function boxBoxCol(box1, box2) {
 function handleCol(obj1, obj2) {
     //console.log('Called for ',obj1.type,'/',obj2.type,' collision !!');
 
+    //https://en.wikipedia.org/wiki/Inelastic_collision (generally)
     //https://en.wikipedia.org/wiki/Elastic_collision
-    let speedNorPro = dotPro(new Vec(obj1.vX - obj2.vX, obj1.vY - obj2.vY), vec(obj2, obj1))
+    let speedNorPro = dotPro(new Vec(obj1.vX - obj2.vX, obj1.vY - obj2.vY), vec(obj2, obj1));
     let centerDist = distanceSq(obj1.x, obj1.y, obj2.x, obj2.y);
-    let changeX = (speedNorPro * (obj1.x - obj2.x)) / (centerDist * (obj1.m + obj2.m));
-    let changeY = (speedNorPro * (obj1.y - obj2.y)) / (centerDist * (obj1.m + obj2.m));
+    let speedNrmlXChange = (speedNorPro * (obj1.x - obj2.x)) / (centerDist * (obj1.m + obj2.m));
+    let speedNrmlyChange = (speedNorPro * (obj1.y - obj2.y)) / (centerDist * (obj1.m + obj2.m));
 
-    obj1.vX -= 2 * obj2.m * changeX;
-    obj1.vY -= 2 * obj2.m * changeY;
-    obj2.vX += 2 * obj1.m * changeX;
-    obj2.vY += 2 * obj1.m * changeY;
+    console.log('changeX : ', speedNrmlXChange, ' changeY : ', speedNrmlyChange);
+
+    switch (obj1.type) {
+        case objTypes.point:
+        case objTypes.circle:
+            obj1.vX -= (1 + obj1.CR) * obj2.m * speedNrmlXChange;
+            obj1.vY -= (1 + obj1.CR) * obj2.m * speedNrmlyChange;
+            break;
+        case objTypes.box:
+            obj1.vX -= (1 + obj1.CR) * obj2.m * speedNrmlXChange;
+            obj1.vY -= (1 + obj1.CR) * obj2.m * speedNrmlyChange;
+            obj1.points.forEach(ele => {
+                ele.vX -= (1 + obj1.CR) * obj2.m * speedNrmlXChange;
+                ele.vY -= (1 + obj1.CR) * obj2.m * speedNrmlyChange;
+            });
+            break;
+    }
+
+    switch (obj2.type) {
+        case objTypes.point:
+        case objTypes.circle:
+            obj2.vX += (1 + obj2.CR) * obj1.m * speedNrmlXChange;
+            obj2.vY += (1 + obj2.CR) * obj1.m * speedNrmlyChange;
+            break;
+        case objTypes.box:
+            obj2.vX += (1 + obj2.CR) * obj1.m * speedNrmlXChange;
+            obj2.vY += (1 + obj2.CR) * obj1.m * speedNrmlyChange;
+            obj2.points.forEach(ele => {
+                ele.vX += (1 + obj2.CR) * obj1.m * speedNrmlXChange;
+                ele.vY += (1 + obj2.CR) * obj1.m * speedNrmlyChange;
+            });
+            break;
+    }
 }
 
 class World {
@@ -322,6 +358,10 @@ class World {
         //detect collision
         detectCol(box, this);
         //calculate new position based on new V and A
+        box.vX += box.aX * this.T * this.ENL;
+        box.x += box.vX * this.T * this.ENL;
+        box.vY += box.aY * this.T * this.ENL;
+        box.y += box.vY * this.T * this.ENL;
         box.points.forEach(ele => {
             ele.vX += ele.aX * this.T * this.ENL;
             ele.x += ele.vX * this.T * this.ENL;
